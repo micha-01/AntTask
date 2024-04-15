@@ -27,7 +27,6 @@ def tasks_to_bipartite(tasks: list[Task]) -> nx.Graph:
         end = t['end']
         j: int = 0
         while (j < t['duration']):
-            print(f"t{i}_{j}", start.hour)
             G.add_edge(f"t{i}_{j}", start.hour, weight=t['prio'])
             start += timedelta(hours=1)
             if start >= end:
