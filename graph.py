@@ -1,4 +1,5 @@
 import networkx as nx
+import matplotlib.pyplot as plt
 from pathlib import Path
 from task import read_tasks_csv, Task
 from datetime import timedelta
@@ -33,3 +34,9 @@ def tasks_to_bipartite(tasks: list[Task]) -> nx.Graph:
                 start = t['start']
                 j += 1
     return G
+if __name__ == "__main__":
+    G = tasks_to_bipartite(tasks)
+    ax = plt.subplot()
+    top = list(filter(lambda x: type(x) is str, G.nodes))
+    nx.draw(G, pos=nx.bipartite_layout(G, top), with_labels=True)
+    plt.show()
