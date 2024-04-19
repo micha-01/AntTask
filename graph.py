@@ -7,9 +7,12 @@ from datetime import timedelta
 tasks = read_tasks_csv(Path("tasks.csv"))
 
 
-def tasks_to_bipartite(tasks: list[Task]) -> nx.Graph:
+
+def tasks_to_bipartite(tasks: list[Task],
+                       weight: int | None = None) -> nx.Graph:
     """
     creates a bipartite graph from a list of tasks
+    cannot use nx.algorithms.bipartite because the graph can be disconnected
     """
     G = nx.Graph()
 
