@@ -1,12 +1,17 @@
 import networkx as nx
-import matplotlib.pyplot as plt
 from pathlib import Path
 from task import read_tasks_csv, Task
 from datetime import timedelta
-from copy import deepcopy
+from random import choice, choices
+import numpy as np
 
 tasks = read_tasks_csv(Path("tasks.csv"))
 
+NUM_ANTS: int = 10
+W_MAX: int = 100
+ALPHA = 3
+BETA = 3
+RHO = 0.5
 
 
 def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int):
@@ -46,21 +51,135 @@ def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int):
     return (G, idx_v)
 
 
+def choose_by_pheromones(avail_u: list[int], pheromones: np.array,
+                         u_prev: int) -> int | None:
     """
+    Chooses an edge based on the pheromones.
+    See Eq 3.1 in paper
     """
+    probs = np.zeros(len(avail_u))
+    densities = np.zeros(len(avail_u))
+
+    for i, u in enumerate(avail_u):
+        densities[i] = pheromones[u_prev, u] ** ALPHA
+
+    sum_dens = sum(densities)
+
+    if sum_dens == 0:
+        return choice(avail_u)
+
+    for i in range(len(avail_u)):
+        probs[i] = densities[i] / sum_dens
+
+    return choices(avail_u, weights=probs, k=1)[0]
+
+
+def choose_by_pheromones_and_ETA(u: int, N_u: list[int], G: nx.Graph,
+                                 pheromones: np.array) -> int:
+    """
+    Chooses an edge based on the pheromones and ETA = 1 / weight_ij
+    See Eq 2.1 in paper
+    """
+    probs = np.zeros(len(N_u))
+    densities = np.zeros(len(N_u))
+
+    # v in Neighbours(u)
+    i: int = 0
+    for v in N_u:
+        densities[i] = (pheromones[u, v] ** ALPHA) * (1 / G[u][v]['weight']) ** BETA
+        i += 1
+
+    sum_dens = sum(densities)
+
+    if sum_dens == 0:
+        return choice(N_u)
+
+    for i in range(len(N_u)):
+        probs[i] = densities[i] / sum_dens
+
+    return choices(N_u, weights=probs, k=1)[0]
+
+
+def ant_matching(G: nx.Graph, t_max: int, idx_v: int) -> list[(int, int)]:
+    """
+    uses ACO to find a matching on the given bipartite graph G
+    """
+    best_matching_list = []
+    weight_min = 1000000  # should be infinity
+
+    # dimension: #nodes * #edges
+    pheromones: np.array = np.zeros((len(G), len(G)))
+
+    for t in range(t_max):
+        best_matching_list, weight_min = generate_solution(
+            G, t, weight_min, best_matching_list, pheromones, idx_v
+        )
+        update_pheromone(best_matching_list, pheromones, weight_min, G)
+
+    return best_matching_list
+
+
+def generate_solution(G: nx.Graph, t: int, weight_min: int,
+                      best_matching_list: list, pheromones: np.array,
+                      idx_v: int):
+    for _ in range(NUM_ANTS):
+        avail_u: list[int] = list(G.nodes())[:idx_v]
+        visited_v: set[int] = set()
+
+        # random task and segment as first
+        u_prev: int = choice(avail_u)
+
+        matching_list = []
+        weight = 0
+        while (len(avail_u) > 0):
+            u = choose_by_pheromones(avail_u, pheromones, u_prev)
+            avail_u.remove(u)
+            to_visit: list[int] = list(set(list(G[u])).difference(visited_v))
+            if len(to_visit) > 0:
+                v = choose_by_pheromones_and_ETA(
+                    u, to_visit, G, pheromones
+                )
+                matching_list.append((u, v))
+                weight += G[u][v]['weight']
+                visited_v.add(v)
+            else:
+                matching_list.append((u, None))
+                weight += W_MAX
+
+            u_prev = u
+
+        if weight <= weight_min:
+            best_matching_list = matching_list
+            weight_min = weight
+    return best_matching_list, weight_min
+
+
+def update_pheromone(matching_list: list, pheromones: np.array, weight: int,
+                     G: nx.Graph):
+    delta_tau = np.zeros((NUM_ANTS, len(G), len(G)))  # very inefficient
+    for k in range(NUM_ANTS):
+        last: int | None = None
+        for (x, y) in matching_list:
+            if last is not None:
+                delta_tau[k, last, x] = 1 / weight
+            last = x
+            if y is None:
+                delta_tau[k, x, x] = 1 / weight
+            else:
+                delta_tau[k, x, y] = 1 / weight
+
+    for (u, v) in G.edges():
+        s = sum(delta_tau[k, u, v] for k in range(NUM_ANTS))
+        pheromones[u, v] = (1 - RHO) * pheromones[u, v] + s
+
+    for u_i in G.nodes():
+        for u_j in G.nodes():
+            if u_i != u_j:
+
+                s = sum(delta_tau[k, u_i, u_j] for k in range(NUM_ANTS))
+                pheromones[u_i, u_j] = (1 - RHO) * pheromones[u_i, u_j] + s
+
+
 if __name__ == "__main__":
-    G = tasks_to_bipartite(tasks)
-
-    # draw bipartite graph
-    ax = plt.subplot()
-    top = list(filter(lambda x: type(x) is str, G.nodes))  # 1st partition (U)
-    nx.draw(G, pos=nx.bipartite_layout(G, top), with_labels=True)
-    plt.show()
-
-    # Also draw weights
-    ax = plt.subplot()
-    pos = nx.spring_layout(G)
-    nx.draw_networkx(G, pos)
-    labels = nx.get_edge_attributes(G, 'weight')
-    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
-    plt.show()
+    G, idx_v = tasks_to_bipartite(tasks)
+    matching: list[(int, int)] = ant_matching(G, 100, idx_v)
