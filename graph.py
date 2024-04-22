@@ -1,4 +1,6 @@
+from copy import deepcopy
 import networkx as nx
+from networkx.algorithms import min_weight_matching
 from pathlib import Path
 from task import read_tasks_csv, Task
 from datetime import timedelta
@@ -100,7 +102,7 @@ def choose_by_pheromones_and_ETA(u: int, N_u: list[int], G: nx.Graph,
     return choices(N_u, weights=probs, k=1)[0]
 
 
-def ant_matching(G: nx.Graph, t_max: int, idx_v: int) -> list[(int, int)]:
+def ant_matching(G: nx.Graph, t_max: int, idx_v: int) -> (list[(int, int)], int):
     """
     uses ACO to find a matching on the given bipartite graph G
     """
@@ -116,7 +118,7 @@ def ant_matching(G: nx.Graph, t_max: int, idx_v: int) -> list[(int, int)]:
         )
         update_pheromone(best_matching_list, pheromones, weight_min, G)
 
-    return best_matching_list
+    return best_matching_list, weight_min
 
 
 def generate_solution(G: nx.Graph, t: int, weight_min: int,
@@ -182,4 +184,15 @@ def update_pheromone(matching_list: list, pheromones: np.array, weight: int,
 
 if __name__ == "__main__":
     G, idx_v = tasks_to_bipartite(tasks)
-    matching: list[(int, int)] = ant_matching(G, 100, idx_v)
+    matching, weight = ant_matching(G, 100, idx_v)
+    for (u, v) in reversed(deepcopy(matching)):
+        if u is None or v is None:
+            matching.remove((u, v))
+            weight -= W_MAX
+    print(matching, weight)
+
+    min_matching = list(min_weight_matching(G))
+    s = 0
+    for (u, v) in min_matching:
+        s += G[u][v]['weight']
+    print(min_matching, s)
