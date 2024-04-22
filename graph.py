@@ -16,6 +16,7 @@ BETA = 3
 RHO = 0.5
 
 
+# TODO: fix bug that time nodes get minus values
 def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int):
     """
     creates a bipartite graph from a list of tasks
