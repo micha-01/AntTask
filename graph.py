@@ -40,25 +40,8 @@ def tasks_to_bipartite(tasks: list[Task],
     return G
 
 
-def transform_to_TSP(G: nx.Graph) -> nx.Graph:
     """
-    transforms the graph G to H (G' in the paper)
     """
-    H = deepcopy(G.copy())
-
-    # add virtual edges for all task nodes: t0_0 -> vt0_0, ...
-    U = list(filter(lambda x: type(x) is str, G.nodes))
-    for u in U:
-        virt: str = f"v{u}"
-        print(u, virt)
-        H.add_node(virt)
-        for v in G[u]:
-            H.add_edge(virt, v, weight=0)
-        H.add_edge(u, virt, weight=W_MAX)
-        for uu in U:
-            if uu != u:
-                H.add_edge(virt, uu, weight=0)
-    return H
 if __name__ == "__main__":
     G = tasks_to_bipartite(tasks)
 
