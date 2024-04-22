@@ -61,7 +61,17 @@ def transform_to_TSP(G: nx.Graph) -> nx.Graph:
     return H
 if __name__ == "__main__":
     G = tasks_to_bipartite(tasks)
+
+    # draw bipartite graph
     ax = plt.subplot()
-    top = list(filter(lambda x: type(x) is str, G.nodes))
+    top = list(filter(lambda x: type(x) is str, G.nodes))  # 1st partition (U)
     nx.draw(G, pos=nx.bipartite_layout(G, top), with_labels=True)
+    plt.show()
+
+    # Also draw weights
+    ax = plt.subplot()
+    pos = nx.spring_layout(G)
+    nx.draw_networkx(G, pos)
+    labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
     plt.show()
