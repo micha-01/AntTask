@@ -16,7 +16,6 @@ BETA = 3
 RHO = 0.5
 
 
-# TODO: fix bug that time nodes get minus values
 def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int):
     """
     creates a bipartite graph from a list of tasks
@@ -45,7 +44,7 @@ def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int):
         end = t['end']
         j: int = 0
         while (j < t['duration']):
-            G.add_edge(i + j, start.hour - idx_v, weight=t['prio'])
+            G.add_edge(i + j, (end.day - start.day) * 10 + start.hour + idx_v, weight=t['prio'])
             start += timedelta(hours=1)
             if start >= end:
                 start = t['start']
