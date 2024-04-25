@@ -50,7 +50,7 @@ coverage.xml
 docs/_build/
 
 # virtual environment
-.venv/
+venv/
 
 # vscode
 .vscode/
