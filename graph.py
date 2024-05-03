@@ -144,7 +144,8 @@ def choose_by_pheromones_and_ETA(u: int, N_u: list[int], G: nx.Graph,
     return choices(N_u, weights=probs, k=1)[0]
 
 
-def ant_matching(G: nx.Graph, t_max: int, idx_v: int) -> (list[(int, int)], int):
+def ant_matching(G: nx.Graph, t_max: int, idx_v: int) -> (
+        list[(int, int)], int):
     """
     uses ACO to find a matching on the given bipartite graph G
     """
@@ -154,18 +155,17 @@ def ant_matching(G: nx.Graph, t_max: int, idx_v: int) -> (list[(int, int)], int)
     # dimension: #nodes * #edges
     pheromones: np.array = np.zeros((len(G), len(G)))
 
-    for t in range(t_max):
+    for _ in range(t_max):
         best_matching_list, weight_min = generate_solution(
-            G, t, weight_min, best_matching_list, pheromones, idx_v
+            G, weight_min, best_matching_list, pheromones, idx_v
         )
         update_pheromone(best_matching_list, pheromones, weight_min, G)
 
     return best_matching_list, weight_min
 
 
-def generate_solution(G: nx.Graph, t: int, weight_min: int,
-                      best_matching_list: list, pheromones: np.array,
-                      idx_v: int):
+def generate_solution(G: nx.Graph, weight_min: int, best_matching_list: list,
+                      pheromones: np.array, idx_v: int):
     for _ in range(NUM_ANTS):
         avail_u: list[int] = list(G.nodes())[:idx_v]
         visited_v: set[int] = set()
@@ -226,14 +226,14 @@ def update_pheromone(matching_list: list, pheromones: np.array, weight: int,
 
 
 def draw_bipartite(G: nx.Graph, idx_v: int):
-    ax = plt.subplot()
+    plt.subplot()
     top = list(G.nodes())[:idx_v]  # 1st partition (U)
     nx.draw(G, pos=nx.bipartite_layout(G, top), with_labels=True)
     plt.show()
 
 
 def draw_with_weights(G: nx.Graph):
-    ax = plt.subplot()
+    plt.subplot()
     pos = nx.spring_layout(G)
     nx.draw_networkx(G, pos)
     labels = nx.get_edge_attributes(G, 'weight')
