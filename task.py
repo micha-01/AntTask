@@ -1,5 +1,5 @@
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Tuple
 
@@ -34,7 +34,7 @@ def read_tasks_csv(path_tasks: Path) -> list[Task]:
 
             # basic checks for valid tasks
             assert start <= end
-            assert (end - start).seconds // 3600 >= duration
+            assert (end - start + timedelta(hours=1)).seconds // 3600 >= duration
             assert 8 <= start.hour <= 18 and 8 <= end.hour <= 18
             i += 1
 
