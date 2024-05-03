@@ -51,7 +51,7 @@ def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int):
 
         day_diff: int = t['start'].day - first
         for _ in range(t['duration']):
-            add_edges_for_node(
+            add_edges_from_node(
                 G, j, t['start'], t['end'], idx_v, t['prio'], day_diff
             )
             j += 1
@@ -59,7 +59,7 @@ def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int):
     return (G, idx_v)
 
 
-def add_edges_for_node(G: nx.Graph, node: int, start: datetime, end: datetime,
+def add_edges_from_node(G: nx.Graph, node: int, start: datetime, end: datetime,
                        idx_v: int, weight: int, day_diff: int):
     """
     adds edges to the given graph from one node to all possible time nodes
