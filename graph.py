@@ -3,7 +3,7 @@ import networkx as nx
 from networkx.algorithms import min_weight_matching
 from pathlib import Path
 from task import read_tasks_csv, Task
-from datetime import timedelta
+from datetime import datetime, timedelta
 from random import choice, choices
 import numpy as np
 
@@ -15,6 +15,9 @@ ALPHA = 3
 BETA = 3
 RHO = 0.5
 
+HOURS_DAY: int = 10
+START_DAY_HOUR: int = 8
+
 
 def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int):
     """
@@ -24,7 +27,7 @@ def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int):
     G = nx.Graph()
 
     # find the starting index for v_j in V
-    idx_v: int = sum(map(lambda task: task['duration'], tasks))
+    idx_v: int = sum(t['duration'] for t in tasks)
 
     # u_i in U: i in {0, ..., idx_v - 1}
     # add a node for each 1h segment of a task
@@ -33,24 +36,62 @@ def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int):
 
     # v_j in V: j in {idx_v, ..., idx_v + 8}
     # add node for each work hour of the day, i.e. 08:00 to 18:00
-    G.add_nodes_from([i for i in range(idx_v, idx_v + 10)])
+    # add 10 nodes for each day (08:00 - 09:00, ...,  17:00 - 18:00)
+    first, last = get_first_and_last_day(tasks)
+    G.add_nodes_from(
+        [i for i in range(idx_v, idx_v + HOURS_DAY * (last - first + 1))]
+    )
 
-    i: int = 0
+    j: int = 0
     for t in tasks:
         # add edge iff task can be done in this hour segment,
         # i.e. is between the start time and the end time of the task
-        # e.g. start: 08:00, end: 10:00 -> edge only to 8 and 9 (NOT 10)
-        start = t['start']
-        end = t['end']
-        j: int = 0
-        while (j < t['duration']):
-            G.add_edge(i + j, (end.day - start.day) * 10 + start.hour + idx_v, weight=t['prio'])
-            start += timedelta(hours=1)
-            if start >= end:
-                start = t['start']
-                j += 1
-        i += j
+        # e.g. start: 08:00, end: 10:00 -> edge only to idx_v and
+        # idx_v + 1 (NOT idx_v + 2)
+
+        day_diff: int = t['start'].day - first
+        for _ in range(t['duration']):
+            add_edges_for_node(
+                G, j, t['start'], t['end'], idx_v, t['prio'], day_diff
+            )
+            j += 1
+
     return (G, idx_v)
+
+
+def add_edges_for_node(G: nx.Graph, node: int, start: datetime, end: datetime,
+                       idx_v: int, weight: int, day_diff: int):
+    """
+    adds edges to the given graph from one node to all possible time nodes
+    with the given weight.
+    e. g. node = 0, start = 08:00, end = 10:00
+    [{0, idx(8)}, {0, idx(9)}]
+    """
+    while (start < end):
+
+        # adds an edge from the current node the time nodes
+        # that are between start and end
+        G.add_edge(
+            node,
+            day_diff * HOURS_DAY + start.hour - START_DAY_HOUR + idx_v,
+            weight=weight
+        )
+        start += timedelta(hours=1)
+
+
+def get_first_and_last_day(tasks: list[Task]):
+    """
+    find the first and last day for all tasks to know
+    how many nodes must be added to the graph
+    """
+    first = tasks[0]['start'].day
+    last = tasks[0]['end'].day
+    for task in tasks:
+        if task['start'].day < first:
+            first = task['start'].day
+        if task['end'].day > last:
+            last = task['end'].day
+    return (first, last)
 
 
 def choose_by_pheromones(avail_u: list[int], pheromones: np.array,
