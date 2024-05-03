@@ -1,19 +1,20 @@
 from copy import deepcopy
 import networkx as nx
-from networkx.algorithms import min_weight_matching
+import matplotlib.pyplot as plt
 from pathlib import Path
 from task import read_tasks_csv, Task
 from datetime import datetime, timedelta
 from random import choice, choices
+import random
 import numpy as np
 
-tasks = read_tasks_csv(Path("tasks.csv"))
 
-NUM_ANTS: int = 10
-W_MAX: int = 100
-ALPHA = 3
-BETA = 3
-RHO = 0.5
+NUM_ANTS: int = 50
+W_MAX: int = 1000
+ALPHA = 8
+BETA = 4
+RHO = 0.3
+T_MAX: int = 20
 
 HOURS_DAY: int = 10
 START_DAY_HOUR: int = 8
@@ -60,7 +61,7 @@ def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int):
 
 
 def add_edges_from_node(G: nx.Graph, node: int, start: datetime, end: datetime,
-                       idx_v: int, weight: int, day_diff: int):
+                        idx_v: int, weight: int, day_diff: int):
     """
     adds edges to the given graph from one node to all possible time nodes
     with the given weight.
@@ -194,6 +195,7 @@ def generate_solution(G: nx.Graph, t: int, weight_min: int,
         if weight <= weight_min:
             best_matching_list = matching_list
             weight_min = weight
+
     return best_matching_list, weight_min
 
 
@@ -223,17 +225,53 @@ def update_pheromone(matching_list: list, pheromones: np.array, weight: int,
                 pheromones[u_i, u_j] = (1 - RHO) * pheromones[u_i, u_j] + s
 
 
+def draw_bipartite(G: nx.Graph, idx_v: int):
+    ax = plt.subplot()
+    top = list(G.nodes())[:idx_v]  # 1st partition (U)
+    nx.draw(G, pos=nx.bipartite_layout(G, top), with_labels=True)
+    plt.show()
+
+
+def draw_with_weights(G: nx.Graph):
+    ax = plt.subplot()
+    pos = nx.spring_layout(G)
+    nx.draw_networkx(G, pos)
+    labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=labels)
+    plt.show()
+
+
 if __name__ == "__main__":
+    random.seed(0)
+    tasks = read_tasks_csv(Path("large_tasks.csv"))
     G, idx_v = tasks_to_bipartite(tasks)
-    matching, weight = ant_matching(G, 100, idx_v)
+    matching, weight = ant_matching(G, T_MAX, idx_v)
     for (u, v) in reversed(deepcopy(matching)):
         if u is None or v is None:
             matching.remove((u, v))
             weight -= W_MAX
-    print(matching, weight)
-
-    min_matching = list(min_weight_matching(G))
+    min_matching = nx.algorithms.min_weight_matching(G)
     s = 0
     for (u, v) in min_matching:
         s += G[u][v]['weight']
+
+    print(matching, weight)
     print(min_matching, s)
+
+    G: nx.Graph
+    is_valid_matching: bool = nx.is_matching(G, matching)
+    assert (is_valid_matching)
+
+    # Ant matching result
+    H: nx.Graph = deepcopy(G.copy())
+    H.clear_edges()
+    H.add_edges_from(matching)
+
+    # Max matching result
+    K: nx.Graph = deepcopy(G.copy())
+    K.clear_edges()
+    K.add_edges_from(min_matching)
+
+    # draw_bipartite(G, idx_v)
+    # draw_bipartite(K, idx_v)
+    # draw_bipartite(H, idx_v)
