@@ -20,12 +20,14 @@ HOURS_DAY: int = 10
 START_DAY_HOUR: int = 8
 
 
-def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int):
+def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int, dict):
     """
     creates a bipartite graph from a list of tasks
     cannot use nx.algorithms.bipartite because the graph can be disconnected
     """
     G = nx.Graph()
+    # dict to log to which taske each node belongs to
+    node_to_task = {}
 
     # find the starting index for v_j in V
     idx_v: int = sum(t['duration'] for t in tasks)
@@ -52,12 +54,14 @@ def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int):
 
         day_diff: int = t['start'].day - first
         for _ in range(t['duration']):
+            #log in dict, which task each node belongs to
+            node_to_task[j+idx_v] = t
             add_edges_from_node(
                 G, j, t['start'], t['end'], idx_v, t['prio'], day_diff
             )
             j += 1
 
-    return (G, idx_v)
+    return (G, idx_v,node_to_task)
 
 
 def add_edges_from_node(G: nx.Graph, node: int, start: datetime, end: datetime,
@@ -232,6 +236,41 @@ def draw_bipartite(G: nx.Graph, idx_v: int):
     plt.show()
 
 
+def print_timetable(matching: list, idx_v: int, first: int, last: int, node_to_task: dict) :
+
+    # map the matching back to the tasks and print a timetable 
+
+    print("Timetable: ")
+    
+    hour_to_node = {}
+    #this works, because every 'a' is unique
+    for a, b in matching:
+        hour_to_node.setdefault(a, b)
+    
+
+    for i in range(first,last+1):
+        for j in range(HOURS_DAY):
+            string_task = " "
+            if(j+8 < 10):
+                string_task += " "
+            key = ((i-first)*HOURS_DAY + j)
+            #print("key: ", key)
+
+            #check if there is a task done in this hour:
+            if(key in hour_to_node):
+                key2 = hour_to_node[key]
+                #print("key2: ", key2)
+            
+                t = node_to_task[key2]
+                string_task += "    do task " 
+                string_task += str(t['id'])
+            else:
+                string_task += "    notting to do"
+            print("day: ", i," hour: ", j+8, string_task)
+            
+        print()
+        
+
 def draw_with_weights(G: nx.Graph):
     plt.subplot()
     pos = nx.spring_layout(G)
@@ -244,7 +283,7 @@ def draw_with_weights(G: nx.Graph):
 if __name__ == "__main__":
     random.seed(0)
     tasks = read_tasks_csv(Path("tasks_large.csv"))
-    G, idx_v = tasks_to_bipartite(tasks)
+    G, idx_v, node_to_task = tasks_to_bipartite(tasks)
     matching, weight = ant_matching(G, T_MAX, idx_v)
     for (u, v) in reversed(deepcopy(matching)):
         if u is None or v is None:
@@ -255,8 +294,12 @@ if __name__ == "__main__":
     for (u, v) in min_matching:
         s += G[u][v]['weight']
 
+
+    (first,last) = get_first_and_last_day(tasks)
     print(matching, weight)
+    print_timetable(matching,idx_v,first,last,node_to_task)
     print(min_matching, s)
+    print_timetable(min_matching,idx_v,first,last,node_to_task)
 
     G: nx.Graph
     is_valid_matching: bool = nx.is_matching(G, matching)
@@ -272,6 +315,6 @@ if __name__ == "__main__":
     K.clear_edges()
     K.add_edges_from(min_matching)
 
-    # draw_bipartite(G, idx_v)
-    # draw_bipartite(K, idx_v)
-    # draw_bipartite(H, idx_v)
+    #draw_bipartite(G, idx_v)
+    #draw_bipartite(K, idx_v)
+    #draw_bipartite(H, idx_v)
