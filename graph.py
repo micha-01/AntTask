@@ -236,40 +236,39 @@ def draw_bipartite(G: nx.Graph, idx_v: int):
     plt.show()
 
 
-def print_timetable(matching: list, idx_v: int, first: int, last: int, node_to_task: dict) :
-
-    # map the matching back to the tasks and print a timetable 
+def print_timetable(matching: list, idx_v: int, first: int, last: int,
+                    node_to_task: dict):
+    """
+    map the matching back to the tasks and print a timetable
+    """
 
     print("Timetable: ")
-    
+
     hour_to_node = {}
-    #this works, because every 'a' is unique
+    # this works, because every 'a' is unique
     for a, b in matching:
         hour_to_node.setdefault(a, b)
-    
 
-    for i in range(first,last+1):
+    for i in range(first, last+1):
         for j in range(HOURS_DAY):
             string_task = " "
-            if(j+8 < 10):
+            if (j+8 < 10):
                 string_task += " "
             key = ((i-first)*HOURS_DAY + j)
-            #print("key: ", key)
 
-            #check if there is a task done in this hour:
-            if(key in hour_to_node):
-                key2 = hour_to_node[key]
-                #print("key2: ", key2)
-            
+            # check if there is a task done in this hour:
+            if (key in hour_to_node):
+                key2 = max(hour_to_node[key], key)
+
                 t = node_to_task[key2]
-                string_task += "    do task " 
+                string_task += "    do task "
                 string_task += str(t['id'])
             else:
                 string_task += "    nothing to do"
-            print("day: ", i," hour: ", j+8, string_task)
-            
+            print("day: ", i, " hour: ", j+8, string_task)
+
         print()
-        
+
 
 def draw_with_weights(G: nx.Graph):
     plt.subplot()
@@ -282,7 +281,7 @@ def draw_with_weights(G: nx.Graph):
 
 if __name__ == "__main__":
     random.seed(0)
-    tasks = read_tasks_csv(Path("tasks_large.csv"))
+    tasks = read_tasks_csv(Path("tasks_test_very_small.csv"))
     G, idx_v, node_to_task = tasks_to_bipartite(tasks)
     matching, weight = ant_matching(G, T_MAX, idx_v)
     for (u, v) in reversed(deepcopy(matching)):
@@ -294,11 +293,12 @@ if __name__ == "__main__":
     for (u, v) in min_matching:
         s += G[u][v]['weight']
 
-
     (first,last) = get_first_and_last_day(tasks)
-    print(matching, weight)
+
+    print("ANT_MATCHING: ", matching, weight)
     print_timetable(matching,idx_v,first,last,node_to_task)
-    print(min_matching, s)
+
+    print("MIN_MATCHING: ", min_matching, s)
     print_timetable(min_matching,idx_v,first,last,node_to_task)
 
     G: nx.Graph
