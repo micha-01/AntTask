@@ -9,12 +9,12 @@ import random
 import numpy as np
 
 
-NUM_ANTS: int = 50
+NUM_ANTS: int = 100
 W_MAX: int = 1000
 ALPHA = 8
 BETA = 4
 RHO = 0.3
-T_MAX: int = 20
+T_MAX: int = 50
 
 HOURS_DAY: int = 10
 START_DAY_HOUR: int = 8
@@ -299,13 +299,13 @@ if __name__ == "__main__":
     for (u, v) in min_matching:
         s += G[u][v]['weight']
 
-    (first,last) = get_first_and_last_day(tasks)
+    (first, last) = get_first_and_last_day(tasks)
 
     print("ANT_MATCHING: ", matching, weight)
-    print_timetable(matching,idx_v,first,last,node_to_task)
+    print_timetable(matching, idx_v, first, last, node_to_task)
 
     print("MIN_MATCHING: ", min_matching, s)
-    print_timetable(min_matching,idx_v,first,last,node_to_task)
+    print_timetable(min_matching, idx_v, first, last, node_to_task)
 
     G: nx.Graph
     is_valid_matching: bool = nx.is_matching(G, matching)
@@ -321,6 +321,6 @@ if __name__ == "__main__":
     K.clear_edges()
     K.add_edges_from(min_matching)
 
-    #draw_bipartite(G, idx_v)
-    #draw_bipartite(K, idx_v)
-    #draw_bipartite(H, idx_v)
+    # draw_bipartite(G, idx_v)
+    # draw_bipartite(K, idx_v)
+    # draw_bipartite(H, idx_v)
