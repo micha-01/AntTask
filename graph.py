@@ -29,20 +29,23 @@ def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int, dict):
     # dict to log to which taske each node belongs to
     node_to_task = {}
 
-    # find the starting index for v_j in V
-    idx_v: int = sum(t['duration'] for t in tasks)
+    first, last = get_first_and_last_day(tasks)
 
-    # u_i in U: i in {0, ..., idx_v - 1}
-    # add a node for each 1h segment of a task
-    # t13 := 3rd segment of task 1
-    G.add_nodes_from([i for i in range(idx_v)])
+    # find the starting index for u_i in U
+    idx_u: int = HOURS_DAY * (last - first + 1)
 
-    # v_j in V: j in {idx_v, ..., idx_v + 8}
+    # v_j in V: j in {0, ..., idx_u - 1}
     # add node for each work hour of the day, i.e. 08:00 to 18:00
     # add 10 nodes for each day (08:00 - 09:00, ...,  17:00 - 18:00)
-    first, last = get_first_and_last_day(tasks)
+    G.add_nodes_from([j for j in range(idx_u)])
+
+    # u_i in U: i in {idx_u, ..., idx_u + #number of task segments - 1}
+    # add a node for each 1h segment of a task
+    # t13 := 3rd segment of task 1
     G.add_nodes_from(
-        [i for i in range(idx_v, idx_v + HOURS_DAY * (last - first + 1))]
+        [i for i in range(
+            idx_u, idx_u + sum(t['duration'] for t in tasks)
+        )]
     )
 
     j: int = 0
@@ -54,18 +57,18 @@ def tasks_to_bipartite(tasks: list[Task]) -> (nx.Graph, int, dict):
 
         day_diff: int = t['start'].day - first
         for _ in range(t['duration']):
-            #log in dict, which task each node belongs to
-            node_to_task[j+idx_v] = t
+            # log in dict, which task each node belongs to
+            node_to_task[j + idx_u] = t
             add_edges_from_node(
-                G, j, t['start'], t['end'], idx_v, t['prio'], day_diff
+                G, j + idx_u, t['start'], t['end'], t['prio'], day_diff
             )
             j += 1
 
-    return (G, idx_v,node_to_task)
+    return (G, idx_u, node_to_task)
 
 
 def add_edges_from_node(G: nx.Graph, node: int, start: datetime, end: datetime,
-                        idx_v: int, weight: int, day_diff: int):
+                        weight: int, day_diff: int):
     """
     adds edges to the given graph from one node to all possible time nodes
     with the given weight.
@@ -78,7 +81,7 @@ def add_edges_from_node(G: nx.Graph, node: int, start: datetime, end: datetime,
         # that are between start and end
         G.add_edge(
             node,
-            day_diff * HOURS_DAY + start.hour - START_DAY_HOUR + idx_v,
+            day_diff * HOURS_DAY + start.hour - START_DAY_HOUR,
             weight=weight
         )
         start += timedelta(hours=1)
