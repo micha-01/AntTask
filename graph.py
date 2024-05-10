@@ -250,7 +250,10 @@ def print_timetable(matching: list, idx_v: int, first: int, last: int,
     hour_to_node = {}
     # this works, because every 'a' is unique
     for a, b in matching:
-        hour_to_node.setdefault(a, b)
+        if(a > b):
+            hour_to_node.setdefault(b, a)
+        else:
+            hour_to_node.setdefault(a, b)
 
     for i in range(first, last+1):
         for j in range(HOURS_DAY):
@@ -261,7 +264,7 @@ def print_timetable(matching: list, idx_v: int, first: int, last: int,
 
             # check if there is a task done in this hour:
             if (key in hour_to_node):
-                key2 = max(hour_to_node[key], key)
+                key2 = hour_to_node[key]
 
                 t = node_to_task[key2]
                 string_task += "    do task "
@@ -284,7 +287,7 @@ def draw_with_weights(G: nx.Graph):
 
 if __name__ == "__main__":
     random.seed(0)
-    tasks = read_tasks_csv(Path("tasks_test_very_small.csv"))
+    tasks = read_tasks_csv(Path("tasks_large.csv"))
     G, idx_v, node_to_task = tasks_to_bipartite(tasks)
     matching, weight = ant_matching(G, T_MAX, idx_v)
     for (u, v) in reversed(deepcopy(matching)):
