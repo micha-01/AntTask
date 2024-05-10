@@ -9,6 +9,10 @@ from pathlib import Path
 from task import read_tasks_csv
 
 
+# TODO: fix all tests -> time nodes are 0 to idx_u and task segment nodes
+# are from idx_u to idx_u + ...
+
+# TODO: adapt function type of tasks_to_bipartite
 class GraphTest(unittest.TestCase):
     seed = 0
     tasks = graph.read_tasks_csv(Path("tasks.csv"))
