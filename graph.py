@@ -9,12 +9,12 @@ import random
 import numpy as np
 
 
-NUM_ANTS: int = 100
+NUM_ANTS: int = 50
 W_MAX: int = 1000
-ALPHA = 8
+ALPHA = 2
 BETA = 4
 RHO = 0.3
-T_MAX: int = 50
+T_MAX: int = 30
 
 HOURS_DAY: int = 10
 START_DAY_HOUR: int = 8
@@ -163,17 +163,20 @@ def ant_matching(G: nx.Graph, t_max: int, idx_v: int) -> (
     pheromones: np.array = np.zeros((len(G), len(G)))
 
     for _ in range(t_max):
-        best_matching_list, weight_min = generate_solution(
+        best_matching_list, weight_min, matching_lists, weights = generate_solution(
             G, weight_min, best_matching_list, pheromones, idx_v
         )
-        update_pheromone(best_matching_list, pheromones, weight_min, G)
+
+        update_pheromone(matching_lists, pheromones, weights, G)
 
     return best_matching_list, weight_min
 
 
 def generate_solution(G: nx.Graph, weight_min: int, best_matching_list: list,
                       pheromones: np.array, idx_v: int):
-    for _ in range(NUM_ANTS):
+    weights: np.array = np.zeros(NUM_ANTS)
+    matching_lists: np.array = np.zeros(NUM_ANTS, dtype=object)
+    for k in range(NUM_ANTS):
         avail_u: list[int] = list(G.nodes())[:idx_v]
         visited_v: set[int] = set()
 
@@ -181,7 +184,7 @@ def generate_solution(G: nx.Graph, weight_min: int, best_matching_list: list,
         u_prev: int = choice(avail_u)
 
         matching_list = []
-        weight = 0
+        weights[k] = 0
         while (len(avail_u) > 0):
             u = choose_by_pheromones(avail_u, pheromones, u_prev)
             avail_u.remove(u)
@@ -191,34 +194,35 @@ def generate_solution(G: nx.Graph, weight_min: int, best_matching_list: list,
                     u, to_visit, G, pheromones
                 )
                 matching_list.append((u, v))
-                weight += G[u][v]['weight']
+                weights[k] += G[u][v]['weight']
                 visited_v.add(v)
             else:
                 matching_list.append((u, None))
-                weight += W_MAX
+                weights[k] += W_MAX
 
             u_prev = u
 
-        if weight <= weight_min:
+        matching_lists[k] = np.array(matching_list)
+        if weights[k] < weight_min:
             best_matching_list = matching_list
-            weight_min = weight
+            weight_min = weights[k]
 
-    return best_matching_list, weight_min
+    return (best_matching_list, weight_min, matching_lists, weights)
 
 
-def update_pheromone(matching_list: list, pheromones: np.array, weight: int,
-                     G: nx.Graph):
+def update_pheromone(matching_lists: np.array, pheromones: np.array,
+                     weights: np.array, G: nx.Graph):
     delta_tau = np.zeros((NUM_ANTS, len(G), len(G)))  # very inefficient
     for k in range(NUM_ANTS):
         last: int | None = None
-        for (x, y) in matching_list:
+        for (x, y) in matching_lists[k]:
             if last is not None:
-                delta_tau[k, last, x] = 1 / weight
+                delta_tau[k, last, x] = 1 / weights[k]
             last = x
             if y is None:
-                delta_tau[k, x, x] = 1 / weight
+                delta_tau[k, x, x] = 1 / weights[k]
             else:
-                delta_tau[k, x, y] = 1 / weight
+                delta_tau[k, x, y] = 1 / weights[k]
 
     for (u, v) in G.edges():
         s = sum(delta_tau[k, u, v] for k in range(NUM_ANTS))
@@ -294,6 +298,7 @@ if __name__ == "__main__":
         if u is None or v is None:
             matching.remove((u, v))
             weight -= W_MAX
+
     min_matching = nx.algorithms.min_weight_matching(G)
     s = 0
     for (u, v) in min_matching:
