@@ -9,7 +9,7 @@ import random
 import numpy as np
 
 
-NUM_ANTS: int = 50
+NUM_ANTS: int = 30
 W_MAX: int = 1000
 ALPHA = 2
 BETA = 4
@@ -254,7 +254,7 @@ def print_timetable(matching: list, idx_v: int, first: int, last: int,
     hour_to_node = {}
     # this works, because every 'a' is unique
     for a, b in matching:
-        if(a > b):
+        if (a > b):
             hour_to_node.setdefault(b, a)
         else:
             hour_to_node.setdefault(a, b)
@@ -262,9 +262,9 @@ def print_timetable(matching: list, idx_v: int, first: int, last: int,
     for i in range(first, last+1):
         for j in range(HOURS_DAY):
             string_task = " "
-            if (j+8 < 10):
+            if (j + START_DAY_HOUR < HOURS_DAY):
                 string_task += " "
-            key = ((i-first)*HOURS_DAY + j)
+            key = ((i - first) * HOURS_DAY + j)
 
             # check if there is a task done in this hour:
             if (key in hour_to_node):
@@ -275,7 +275,7 @@ def print_timetable(matching: list, idx_v: int, first: int, last: int,
                 string_task += str(t['id'])
             else:
                 string_task += "    nothing to do"
-            print("day: ", i, " hour: ", j+8, string_task)
+            print("day: ", i, " hour: ", j + START_DAY_HOUR, string_task)
 
         print()
 
@@ -291,7 +291,7 @@ def draw_with_weights(G: nx.Graph):
 
 if __name__ == "__main__":
     random.seed(0)
-    tasks = read_tasks_csv(Path("tasks_large.csv"))
+    tasks = read_tasks_csv(Path("tasks_very_large.csv"))
     G, idx_v, node_to_task = tasks_to_bipartite(tasks)
     matching, weight = ant_matching(G, T_MAX, idx_v)
     for (u, v) in reversed(deepcopy(matching)):
