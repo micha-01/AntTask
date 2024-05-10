@@ -265,7 +265,7 @@ def print_timetable(matching: list, idx_v: int, first: int, last: int, node_to_t
                 string_task += "    do task " 
                 string_task += str(t['id'])
             else:
-                string_task += "    notting to do"
+                string_task += "    nothing to do"
             print("day: ", i," hour: ", j+8, string_task)
             
         print()
