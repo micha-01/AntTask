@@ -8,7 +8,8 @@ Task = Dict[str, Tuple[int, datetime, str]]
 
 def read_tasks_csv(path_tasks: Path) -> list[Task]:
     """
-    reads a csv file to a list of tasks
+    Reads a csv file to a list of tasks.
+    Tasks cannot span multiple days.
 
     task example:
     id, name, start, end,  prio, duration
@@ -36,6 +37,7 @@ def read_tasks_csv(path_tasks: Path) -> list[Task]:
             assert start <= end
             assert (end - start + timedelta(hours=1)).seconds // 3600 >= duration
             assert 8 <= start.hour <= 18 and 8 <= end.hour <= 18
+            assert start.day == end.day
             i += 1
 
             tasks.append(row)
