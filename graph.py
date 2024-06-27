@@ -212,7 +212,7 @@ def generate_solution(G: nx.Graph, weight_min: int, best_matching_list: list,
 
 def update_pheromone(matching_lists: np.array, pheromones: np.array,
                      weights: np.array, G: nx.Graph):
-    delta_tau = np.zeros((NUM_ANTS, len(G), len(G)))  # very inefficient
+    delta_tau = np.zeros((NUM_ANTS, len(G), len(G)))
     for k in range(NUM_ANTS):
         last: int | None = None
         for (x, y) in matching_lists[k]:
